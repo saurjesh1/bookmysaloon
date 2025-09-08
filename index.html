@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Appointment | Booky</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f6f7fb;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .container {
+      max-width: 800px;
+    }
+    .card {
+      border-radius: 14px;
+      border: none;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    h2, h4 {
+      font-weight: 600;
+    }
+    .service-card {
+      border: 1px solid #eaeaea;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .service-card:hover {
+      transform: scale(1.03);
+      border-color: #0d6efd;
+      background: #f8faff;
+    }
+    .service-card input {
+      margin-top: 10px;
+    }
+    .total-box {
+      background: #eaf4ff;
+      border: 1px solid #b3d6ff;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .btn-primary {
+      background: #0d6efd;
+      border-radius: 10px;
+      font-size: 18px;
+      padding: 12px 20px;
+      font-weight: 500;
+    }
+    .btn-primary:hover {
+      background: #0b5ed7;
+    }
+    /* Mobile tweaks */
+    @media (max-width: 576px) {
+      h2 { font-size: 22px; }
+      .service-card { margin-bottom: 15px; }
+      .btn-primary { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="container py-4">
+  <h2 class="text-center mb-4">Book Your Appointment</h2>
+
+  <form method="POST" action="submit.php" enctype="multipart/form-data">
+
+    <!-- Personal Details -->
+    <div class="card p-4">
+      <h4 class="mb-3">Personal Details</h4>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Mobile</label>
+          <input type="text" name="phone" class="form-control" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Services -->
+    <div class="card p-4">
+      <h4 class="mb-3">Select Services</h4>
+      <div class="row" id="services">
+        <div class="col-sm-6 col-md-4">
+          <div class="service-card">
+            <h6>Haircut</h6>
+            <p class="text-muted mb-1">₹150 | 25 mins</p>
+            <input type="checkbox" name="service[]" class="service" data-price="150" data-duration="25" value="Haircut">
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-4">
+          <div class="service-card">
+            <h6>Beard Shave</h6>
+            <p class="text-muted mb-1">₹120 | 15 mins</p>
+            <input type="checkbox" name="service[]" class="service" data-price="120" data-duration="15" value="Beard Shave">
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-4">
+          <div class="service-card">
+            <h6>Facial</h6>
+            <p class="text-muted mb-1">₹300 | 40 mins</p>
+            <input type="checkbox" name="service[]" class="service[]" data-price="300" data-duration="40" value="Facial">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slot Selection -->
+    <div class="card p-4">
+      <h4 class="mb-3">Choose Date & Time</h4>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Date</label>
+          <input type="date" name="date" id="date" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Start Time</label>
+          <input type="time" name="time" id="time" class="form-control" required>
+        </div>
+      </div>
+      <div class="mt-3 total-box">
+        Total: ₹<span id="totalPrice">0</span> | Duration: <span id="totalDuration">0</span> mins <br>
+        Slot: <span id="slotRange">--:-- – --:--</span>
+      </div>
+    </div>
+
+    <!-- Payment -->
+    <div class="card p-4 text-center">
+      <h4 class="mb-3">Make Payment</h4>
+      <p class="text-muted">Scan the QR and pay securely</p>
+      <img src="{{ url_for('static', filename='qrcodes/business_' + str(business['id']) + '.png') }}" width="180" class="mb-3">
+      <div class="mt-2">
+        <label class="form-label">Upload Payment Screenshot</label>
+        <input type="file" name="payment_screenshot" class="form-control" required>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="text-center mb-4">
+      <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const services = document.querySelectorAll('.service');
+  const totalPriceEl = document.getElementById('totalPrice');
+  const totalDurationEl = document.getElementById('totalDuration');
+  const slotRangeEl = document.getElementById('slotRange');
+  const startTimeInput = document.getElementById('time');
+
+  function updateSummary() {
+    let totalPrice = 0, totalDuration = 0;
+    services.forEach(s => {
+      if (s.checked) {
+        totalPrice += parseInt(s.dataset.price);
+        totalDuration += parseInt(s.dataset.duration);
+      }
+    });
+    totalPriceEl.innerText = totalPrice;
+    totalDurationEl.innerText = totalDuration;
+
+    // slot calculation
+    const startTime = startTimeInput.value;
+    if (startTime && totalDuration > 0) {
+      const [hours, minutes] = startTime.split(":").map(Number);
+      let start = new Date();
+      start.setHours(hours, minutes);
+      let end = new Date(start.getTime() + totalDuration * 60000);
+      const fmt = d => d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      slotRangeEl.innerText = `${fmt(start)} – ${fmt(end)}`;
+    } else {
+      slotRangeEl.innerText = "--:-- – --:--";
+    }
+  }
+
+  services.forEach(service => service.addEventListener('change', updateSummary));
+  startTimeInput.addEventListener('change', updateSummary);
+</script>
+</body>
+</html>
+
+
